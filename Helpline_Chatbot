@@ -1,0 +1,243 @@
+import re
+
+def get_user_input(prompt):
+    """
+    Collects multi-line user input (press Enter twice to finish).
+    """
+    print(prompt)
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "":
+            break
+        lines.append(line)
+    return " ".join(lines).lower()
+
+def analyze_user_message(user_message, age, gender):
+
+    # Determine age group.
+    category = "adult"
+    try:
+        age_int = int(age)
+        if age_int < 13:
+            category = "child"
+        elif 13 <= age_int < 20:
+            category = "teen"
+        elif age_int >= 65:
+            category = "senior"
+    except Exception:
+        category = "adult"
+    
+    gender = gender.strip().lower()
+    
+    # A dictionary of calming or alternative activities by age.
+    calming_activities = {
+        "child": ["drawing", "singing", "playing outside"],
+        "teen": ["journaling", "listening to music", "chatting with a close friend"],
+        "adult": ["mindfulness meditation", "deep breathing", "taking a brisk walk"],
+        "senior": ["gentle stretching", "reading", "listening to soft music"]
+    }
+
+    # Dictionary for storing detected responses.
+    detected = {}
+    alerts = []
+    # Check self-harm expressions. Expanded to include "kill myself" and "end my life".
+    if re.search(r'\bi (will|am going to) (kill myself|hurt myself|end my life)\b', user_message):
+        alerts.append(
+            "Your message indicates an intense urge to harm yourself. I care deeply about you, "
+            "and it sounds like you're in crisis. I've just contacted immediate crisis support (dialed 988) "
+            "so that help can reach you as soon as possible. Sometimes sharing what you’re experiencing can be a first step toward finding safety. "
+            "Are you in a safe place right now?"
+        )
+    # Check expressions of harm toward others – making sure not to capture self-harm.
+    elif re.search(r'\bi (will|going to|have) (kill|bomb|attack|hurt)(?! myself\b)', user_message):
+        alerts.append(
+            "I'm really concerned by your words, which suggest you might harm others. Such actions can have irreversible consequences, both for you and for those around you. "
+            "For your safety and the safety of others, I've contacted emergency services (dialed 911). "
+            "I care about you and want to understand what's behind these thoughts. Would you share what’s leading you to these feelings? Are you safe right now?"
+        )
+    if alerts:
+        detected["notification"] = " ".join(alerts)
+    # --- Define Topic Responses for Other Areas ---
+    topics = {
+        "greeting": {
+            "keywords": ["hello", "hi", "hey"],
+            "response": lambda cat, gen: "Hello! How are you feeling? I'd love to know what's on your mind."
+        },
+        "tiredness": {
+            "keywords": ["tired"],
+            "response": lambda cat, gen: "It seems you're feeling tired. Is it physical exhaustion, emotional fatigue, or both?"
+        },
+        "upset": {
+            "keywords": ["upset", "angry", "frustrated"],
+            "response": lambda cat, gen: "Feeling upset can be really challenging. Would you like to share what's causing these emotions?"
+        },
+        "coping": {
+            "keywords": ["coping", "cope", "stress", "dealing with emotions"],
+            "response": lambda cat, gen: (
+                "For coping, " +
+                ("drawing, singing, or playing" if cat == "child" else
+                 "journaling, talking to a friend, or listening to music" if cat == "teen" else
+                 "mindfulness, deep breathing, or taking a walk" if cat == "adult" else
+                 "gentle stretching, reading, or listening to soft music")
+            ) + " might help."
+        },
+        "suicidal": {
+            "keywords": [
+                "suicidal", "kill myself", "hurt myself", "end my life", "can't go on", "no point in living",
+                "die", "wish i wasn't here", "hopeless", "don't want to wake up"
+            ],
+            "response": lambda cat, gen: (
+                "I'm really sorry you’re feeling so much pain. It sounds like these thoughts are overwhelming. "
+                "Please know that harming yourself is not the solution—even though it might feel like it right now. "
+                "I've reached out for crisis support (dialed 988) because your life matters, and you deserve help. "
+                "Would you be willing to talk about what’s going on?"
+            )
+        },
+        "sadness": {
+            "keywords": [
+                "sad", "depressed", "unhappy", "miserable", "down", "heartbroken",
+                "numb", "empty", "worthless", "lost", "crying", "can't stop crying"
+            ],
+            "response": lambda cat, gen: (
+                "It sounds like you're experiencing deep sadness. " +
+                ("Talking with a parent or teacher might help if you're younger, " if cat in ["child", "teen"]
+                 else "Sharing your feelings with someone you trust may provide relief.")
+            )
+        },
+        "anxiety": {
+            "keywords": [
+                "anxious", "nervous", "worried", "panic", "fearful", "stressed",
+                "tense", "overthinking", "racing thoughts", "paranoid", "dread", "on edge"
+            ],
+            "response": lambda cat, gen: (
+                "Anxiety can be extremely overwhelming. " +
+                ("Sometime talking with someone you trust can help ease those worries." if cat in ["child", "teen"]
+                 else "Practicing mindfulness, deep breathing, or a brisk walk might help calm your thoughts.")
+            )
+        },
+        "loneliness": {
+            "keywords": [
+                "lonely", "alone", "isolated", "abandoned", "left out", "invisible",
+                "disconnected", "ignored", "no one cares", "nobody loves me", "forgotten"
+            ],
+            "response": lambda cat, gen: "Feeling disconnected hurts. Sometimes reaching out—even just a friend—can help."
+        },
+        "medication": {
+            "keywords": [
+                "meds", "medication", "not taking", "stopped taking", "forgot my meds",
+                "haven't taken my pills", "off my meds", "don't need meds"
+            ],
+            "response": lambda cat, gen: "Not taking your medication regularly can be concerning. Have you spoken with your healthcare provider about it?"
+        },
+        "eating": {
+            "keywords": [
+                "not eating", "stopped eating", "lost my appetite", "skipping meals",
+                "don't want food", "can't eat", "food makes me sick", "starving"
+            ],
+            "response": lambda cat, gen: "Changes in your eating habits can be serious. Could you share what might be affecting your appetite?"
+        },
+        "hygiene": {
+            "keywords": [
+                "bad hygiene", "not showering", "don't care about my appearance",
+                "not taking care of myself", "neglecting hygiene", "haven't brushed my teeth", "haven't changed clothes"
+            ],
+            "response": lambda cat, gen: "Neglecting personal hygiene might suggest you're feeling overwhelmed. Would discussing what’s contributing help?"
+        },
+        "academic": {
+            "keywords": ["homework", "exam", "test", "assignment", "grade", "study", "class", "project", "school"],
+            "response": lambda cat, gen: (
+                "School stress can be challenging. " +
+                ("Talking to a teacher or parent might clarify your doubts." if cat in ["child", "teen"]
+                 else "Discussing issues with peers or instructors could alleviate the pressure.")
+            )
+        },
+        "classmate": {
+            "keywords": ["classmate", "bully", "bullying", "peer", "exclusion", "conflict", "teasing"],
+            "response": lambda cat, gen: (
+                "Conflicts with classmates can be very difficult. " +
+                ("Speaking with a trusted teacher or counselor might help." if cat in ["child", "teen"]
+                 else "Addressing issues calmly with a mediator might be beneficial.")
+            )
+        },
+        "work": {
+            "keywords": ["boss", "job", "deadline", "promotion", "coworker", "work", "overtime", "workload"],
+            "response": lambda cat, gen: (
+                "Work stress can be overwhelming. " +
+                ("Talking to your supervisor or HR may help set clearer boundaries." if cat == "adult"
+                 else "Sharing your concerns with someone you trust might ease the stress.")
+            )
+        },
+        "friend": {
+            "keywords": ["friend", "betray", "argument", "disagreement", "misunderstanding", "let down", "conflict", "falling out"],
+            "response": lambda cat, gen: (
+                "Friendship conflicts can hurt deeply. " +
+                ("An open conversation might help resolve misunderstandings." if cat != "child"
+                 else "Talking to a trusted friend or adult could help clear things up.")
+            )
+        },
+        "romantic": {
+            "keywords": ["partner", "relationship", "dating", "romantic", "love", "breakup", "heartache", "divorce", "infidelity"],
+            "response": lambda cat, gen: (
+                "Relationship challenges are deeply personal. " +
+                ("Expressing your feelings and even considering counseling might be helpful." if cat in ["adult", "senior"]
+                 else "Discussing your experiences with someone close to you may ease the pain.")
+            )
+        }
+    }
+    group_priority = {
+        "greeting": ["greeting"],
+        "mood": ["tiredness", "upset"],
+        "mental": ["suicidal", "sadness", "anxiety", "loneliness"],
+        "self_care": ["coping", "medication", "eating", "hygiene"],
+        "situational": ["academic", "classmate", "work", "friend", "romantic"]
+    }
+    # Special-case: if the user message exactly matches a greeting word.
+    if user_message.strip() in ["hello", "hi", "hey"]:
+        detected["greeting"] = topics["greeting"]["response"](category, gender)
+    else:
+        # Process each group by priority order.
+        for group, topics_list in group_priority.items():
+            for topic in topics_list:
+                for keyword in topics[topic]["keywords"]:
+                    if keyword in user_message:
+                        # Only add the first match found in each group.
+                        detected[group] = topics[topic]["response"](category, gender)
+                        break
+                if group in detected:
+                    break
+    # Fallback response if nothing was detected.
+    if not detected:
+        detected["default"] = "I'm here to listen. Could you describe in more detail what you're experiencing?"
+    # Order final responses with notifications at the top.
+    response_order = ["notification", "greeting", "mood", "mental", "self_care", "situational", "default"]
+    final_response = "\n\n".join(detected[key] for key in response_order if key in detected)
+    
+    return final_response
+
+def start_conversation(name, age, gender):
+    """
+    Runs the main conversation loop for the chatbot.
+    """
+    print(f"\nThank you, {name}. You can type 'exit' or 'quit' anytime.\n")
+    while True:
+        user_message = get_user_input("You (press Enter twice when done): ")
+        if user_message.strip() in ["exit", "quit"]:
+            print(f"\nThank you for talking, {name}. Remember, you matter—and I'm here whenever you need support.")
+            break
+        response = analyze_user_message(user_message, age, gender)
+        print("\n" + response + "\n")
+
+def sad_chatbot():
+    """
+    Greets the user, collects essential information, and starts the conversation loop.
+    """
+    print("Hello, I'm here to listen and support you.")
+    name = input("\nWhat's your full name? ")
+    age = input("\nHow old are you? ")
+    gender = input("\nWhat's your gender or preferred identification? ")
+    
+    print(f"\nThank you, {name}. I'll do my best to tailor my responses to your needs.")
+    start_conversation(name, age, gender)
+
+sad_chatbot() # Start the chatbot conversation when the script runs.
