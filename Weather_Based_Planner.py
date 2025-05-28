@@ -4,88 +4,64 @@ def weather_day_planner():
     weather = input("What's the weather like today? (sunny, rainy, cloudy, snowy, windy): ").strip().lower()
     age = int(input("How old are you? "))
     gender = input("What's your gender? (male, female, non-binary, prefer not to say): ").strip().lower()
-    interests = input("What are your interests? (e.g., sports, books, music, photography, gaming): ").strip().lower().split(", ")
+    interests = input("What are your interests? (e.g., sports, books, music, photography, gaming, cooking, fashion, hiking, coding, board games): ").strip().lower().split(", ")
 
     plans = {
         "sunny": [
-            "Enjoy a picnic or a scenic nature walk.",
-            "Hit the beach for volleyball or surfing.",
-            "Outdoor yoga or meditation for a peaceful day.",
-            "Explore a botanical garden or visit a national park."
+            ("Play pickup basketball or soccer outdoors.", ["sports", "basketball", "soccer"]),
+            ("Go on a hiking or biking adventure.", ["outdoors", "hiking", "fitness"]),
+            ("Try skateboarding at a local park.", ["sports", "skateboarding", "outdoors"]),
+            ("Do a photography tour of nature spots.", ["photography", "outdoors"]),
+            ("Test out drone flying in an open field.", ["technology", "outdoors", "photography"]),
+            ("Host a backyard barbecue with friends.", ["cooking", "social", "relaxation"])
         ],
         "rainy": [
-            "Curl up with a book and a cup of tea.",
-            "Spend time at a cozy café or bakery.",
-            "Try painting or a DIY craft indoors.",
-            "Have a movie marathon with homemade popcorn."
+            ("Dive into a sports-related book or biography.", ["books", "sports"]),
+            ("Host an indoor D&D or board game night.", ["DnD", "gaming", "social"]),
+            ("Watch classic sports documentaries or game replays.", ["sports", "movies"]),
+            ("Try a new recipe or bake homemade bread.", ["cooking", "creativity"]),
+            ("Experiment with coding a new project.", ["technology", "coding"]),
+            ("Start sketching character designs or comics.", ["art", "creativity"])
         ],
         "cloudy": [
-            "Capture stunning photos of the moody weather.",
-            "Visit a museum, planetarium, or art exhibit.",
-            "Write poetry, journal, or create a music playlist.",
-            "Go thrift shopping or explore an antique shop."
+            ("Capture stunning photos of the moody atmosphere.", ["photography", "art"]),
+            ("Visit a science museum or planetarium.", ["science", "technology", "education"]),
+            ("Write poetry, journal, or blog your thoughts.", ["writing", "books", "creativity"]),
+            ("Try fashion styling—create new outfits.", ["fashion", "creativity"]),
+            ("Work on puzzle-solving or strategy games.", ["gaming", "board games", "logic"])
         ],
         "snowy": [
-            "Build a snow fort or have a snowball fight.",
-            "Enjoy hot cocoa while watching a classic film.",
-            "Try skiing, sledding, or snowboarding.",
-            "Host a cozy indoor game night with friends."
+            ("Play a friendly hockey or ice skating game.", ["sports", "hockey", "fitness"]),
+            ("Sip hot cocoa and read a cozy novel.", ["books", "relaxation"]),
+            ("Try skiing or snowboarding at a nearby resort.", ["sports", "outdoors"]),
+            ("Build an elaborate snow fort or igloo.", ["creativity", "outdoors", "fun"]),
+            ("Have a nostalgic retro gaming day indoors.", ["gaming", "social"])
         ],
         "windy": [
-            "Fly a kite or watch the leaves dance in the breeze.",
-            "Take an invigorating walk in the fresh air.",
-            "Do an indoor workout session or yoga practice.",
-            "Try strategy board games or puzzles with family."
+            ("Fly a kite or watch the wind move across landscapes.", ["outdoors", "nature"]),
+            ("Take an invigorating walk in the fresh air.", ["fitness", "relaxation"]),
+            ("Explore astrophotography—capture cloud movement.", ["photography", "science"]),
+            ("Indoor yoga or flexibility exercises.", ["fitness", "health"]),
+            ("Try competitive chess or strategy-based card games.", ["gaming", "logic"])
         ]
     }
 
-    # Customize suggestions based on age
-    if age < 18:
-        plans["sunny"].append("Visit a local amusement park or playground.")
-        plans["rainy"].append("Have a fun indoor scavenger hunt.")
-        plans["snowy"].append("Make snow angels and enjoy warm cookies.")
-    
-    if age >= 18 and age <= 30:
-        plans["cloudy"].append("Join a creative writing or poetry event.")
-        plans["windy"].append("Try windsurfing or an outdoor obstacle course.")
-    
-    if age > 30:
-        plans["sunny"].append("Take a relaxing walk at a nearby lake or forest.")
-        plans["rainy"].append("Enjoy a quiet evening with a classic novel.")
-        plans["cloudy"].append("Attend a photography or art workshop.")
-
-    # Customize suggestions based on gender (optional ideas)
-    if gender == "female":
-        plans["rainy"].append("Try a DIY spa day at home.")
-    
-    if gender == "male":
-        plans["sunny"].append("Go fishing or enjoy an outdoor barbecue.")
-    
-    # Customize suggestions based on interests
-    if "sports" in interests:
-        plans["sunny"].append("Join a game of soccer or basketball with friends.")
-        plans["snowy"].append("Try ice hockey or snowboarding.")
-
-    if "books" in interests:
-        plans["rainy"].append("Visit a bookstore or library for inspiration.")
-        plans["cloudy"].append("Write a short story or start a book club.")
-
-    if "music" in interests:
-        plans["windy"].append("Play an instrument or create a new playlist.")
-        plans["rainy"].append("Discover new artists and explore different genres.")
-
-    if "photography" in interests:
-        plans["sunny"].append("Capture golden hour or nature shots.")
-        plans["cloudy"].append("Experiment with black-and-white photography.")
-
-    if "gaming" in interests:
-        plans["rainy"].append("Host an online multiplayer gaming session.")
-        plans["cloudy"].append("Try a new strategy or adventure game.")
+    def rank_activities(weather_activities):
+        ranked_activities = []
+        for activity, tags in weather_activities:
+            match_score = sum(1 for tag in tags if tag in interests)
+            ranked_activities.append((activity, match_score))
+        
+        # Sort activities by match score, highest first
+        ranked_activities.sort(key=lambda x: x[1], reverse=True)
+        return ranked_activities
 
     if weather in plans:
-        print("\nHere are some personalized options based on today's weather and your preferences:")
-        for activity in plans[weather]:
-            print("- " + activity)
+        ranked_list = rank_activities(plans[weather])
+
+        print(f"\nHere are your ranked activity options for today's {weather} weather:")
+        for idx, (activity, score) in enumerate(ranked_list, start=1):
+            print(f"{idx}. {activity} (Match score: {score})")
     else:
         print("I don't recognize that weather! Try again.")
 
